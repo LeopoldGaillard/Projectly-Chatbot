@@ -1,9 +1,13 @@
 import streamlit as st
 import requests
+import torch
+import transformers
 import json
-from langchain.prompts import PromptTemplate
-from langchain.prompts.chat import HumanMessagePromptTemplate
-from langchain.schema import HumanMessage, SystemMessage
+from transformers import AutoTokenizer
+from langchain.llms import HuggingFacePipeline
+from langchain.chains import RetrievalQA
+
+
 
 def clear_chat_history():
     st.session_state.messages = [{"role": "assistant", "content": "How may I help you today?"}]
@@ -22,69 +26,72 @@ def rag_search(query):
     url = f"http://127.0.0.1:5000/projectly/docs/rag_search/{query}"
     response = requests.get(url)
     if response.status_code == 200:
-        return json.loads(response.content)
+        res = json.loads(response.content)
+        res = {item["_id"]: item["_source"] for item in res}
+        return res
     else:
         return {"error": "Unable to fetch data"}
     
-def generate_answer_not_really_good(llm, prompt, rag_info):
-    
-    if rag_info != []:
-        prompt = f"Q: {prompt}. Based on my research: {rag_info} A: "
+def process_context(context_data):
 
-    output = llm(
-            prompt, # Prompt
-            max_tokens=80, # Maximum number of tokens to generate
-            stop=["Q:", "\n"], # Stop generating just before the model would generate a new question
-        )
+    processed_context = ""
+    for key, data in context_data.items():
+        context_piece = f"Title: {data['title']}\nDescription: {data['description']}\nContent: {data['content']}\n\n"
+        processed_context += context_piece
 
-    response = output['choices'][0]['text']
+    return processed_context
 
-    return response
+def generate_answer(llm, query):
+    rag_context = rag_search(query)
+    processed_context = process_context(rag_context)
 
 
-def generate_good_answer(llm, prompt):
-    rag_context = rag_search(prompt)
-    
-    system_message = """You are a professional in finance.
+    prompt = f"""You are a professional in finance.
         As a financial expert, you're here to assist customers with information and advice on various financial topics.
-        Example:
-        
-        Input:
-        What are the best investment options for long-term growth?
-        
-        Context:
-        The best investment options for long-term growth include:
-        1. Diversified Stock Market Portfolios
-        2. Real Estate Investment
-        3. Exchange-Traded Funds (ETFs)
-        
+
+        Input: {query}
+        Context: {processed_context}
         Output:
-        For long-term growth, consider diversifying your investments with a mix of stocks, real estate, and ETFs.
         """
     
-
-    # rajouter un if rag_context != [] pour le cas ou il n'y a pas de réponse et mettre un message sans le contexte
-    if rag_context != []:
-        template = f"""Input:
-            {prompt}
-            
-            Context:
-            {rag_context}
-            
-            Output:
-            """
-    else:
-        template = f"""Input:
-            {prompt}
-            
-            Output:
-            """
-    output = llm(
-            template, # Prompt
-        )
+    output = llm(prompt)
 
     response = output['choices'][0]['text']
 
     return response
+
+
+def generate3(llm, query):
+
+    #tokenizer = AutoTokenizer.from_pretrained(llm)
+
+    query_pipeline = transformers.pipeline(
+        "text-generation",
+        model=llm,
+        device_map="auto",)
+    
+    llm = HuggingFacePipeline(pipeline=query_pipeline)
+
+    rag_context = rag_search(query)
+
+    template = """You are a professional in finance.
+        As a financial expert, you're here to assist customers with information and advice on various financial topics.
+        If you don't know the answer, just say that you don't know. 
+        Use three sentences maximum and keep the answer concise.
+
+        Input: {question}
+        Context: {context}
+        Output:
+        """
+    
+    #prompt = ChatPromptTemplate.from_template(template)
+
+    qa_chain = RetrievalQA.from_chain_type(llm=llm,
+                                  chain_type="stuff",
+                                  retriever=rag_context,
+                                  return_source_documents=True)
+
+    return qa_chain.run(query)
+    #return rag_chain.invoke(query)
 
 #def generate2(llm, prompt):

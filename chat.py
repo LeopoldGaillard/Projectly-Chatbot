@@ -1,11 +1,5 @@
-import requests
 from llama_cpp import Llama
 from functions import *
-import json
-from langchain.llms import LlamaCpp
-from langchain.prompts import PromptTemplate
-from langchain.callbacks.manager import CallbackManager
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 
 llm = Llama(model_path="models/llama-2-7b.Q8_0.gguf", max_tokens=100, n_ctx=2048)
@@ -34,7 +28,7 @@ if prompt:
 
         #rag_response = rag_search(prompt)
 
-        response = generate_good_answer(llm, prompt)
+        response = generate_answer(llm, prompt)
 
         st.chat_message("assistant").markdown(response)
 
