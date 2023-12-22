@@ -1,13 +1,6 @@
 import streamlit as st
 import requests
-import torch
-import transformers
 import json
-from transformers import AutoTokenizer
-from langchain.llms import HuggingFacePipeline
-from langchain.chains import RetrievalQA
-
-
 
 def clear_chat_history():
     st.session_state.messages = [{"role": "assistant", "content": "How may I help you today?"}]
@@ -15,7 +8,7 @@ def clear_chat_history():
 def warmup(llm):
     i = 0
     while (i != 2):
-        output = llm(
+        llm(
             "Hello",
             max_tokens=50,
         )
@@ -45,22 +38,22 @@ def generate_answer(llm, query):
     rag_context = rag_search(query)
     processed_context = process_context(rag_context)
 
-
     prompt = f"""You are a professional in finance.
-        As a financial expert, you're here to assist customers with information and advice on various financial topics.
-
-        Input: {query}
-        Context: {processed_context}
-        Output:
-        """
+    As a financial expert, you're here to assist customers with information and advice on various financial topics.
     
+    Input: {query}
+
+    {f"Context: {processed_context}" if processed_context else ""}
+    
+    Output:
+    """
     output = llm(prompt)
 
     response = output['choices'][0]['text']
 
     return response
 
-
+'''
 def generate3(llm, query):
 
     #tokenizer = AutoTokenizer.from_pretrained(llm)
@@ -93,5 +86,4 @@ def generate3(llm, query):
 
     return qa_chain.run(query)
     #return rag_chain.invoke(query)
-
-#def generate2(llm, prompt):
+'''
