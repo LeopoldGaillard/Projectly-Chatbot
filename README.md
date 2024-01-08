@@ -1,17 +1,14 @@
 # FinSync AI
 
-Implementation of a chatbot using Llama2.
+Implementation of a chatbot using OpenAI API.
 
 We use the library streamlit to display the chatbot in a web page.
 
-The chatbot can do RAG searches (with low performance at the moment).
+The chatbot can do RAG searches.
 
-## Llama model
+## OpenAI API
 
-The used model can be uploaded here :
-https://huggingface.co/TheBloke/Llama-2-7B-GGUF/tree/main
-
-Be free to use another model by changing the value of the 'MODEL_PATH' variable in the chatbot.py file.
+Use your OpenAI API key in the .env file to set the environment variable OPEN_AI_KEY.
 
 ## Launch the chatbot
 

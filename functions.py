@@ -32,7 +32,7 @@ def process_context(context_data):
         context_piece = f"Title: {data['title']}\nDescription: {data['description']}\nContent: {data['content']}\n\n"
         processed_context += context_piece
 
-    return processed_context[:4000]
+    return processed_context[:7800]
 
 def generate_answer(llm, query):
     rag_context = rag_search(query)
