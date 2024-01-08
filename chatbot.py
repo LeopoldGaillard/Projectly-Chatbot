@@ -1,13 +1,17 @@
-from llama_cpp import Llama
+from langchain.chat_models import ChatOpenAI
+from StreamHandler import StreamHandler
+from langchain.schema import HumanMessage, SystemMessage
 from functions import *
+import streamlit as st
+import os
+from dotenv import load_dotenv
 
-MODEL_PATH = "models/llama-2-7b.Q8_0.gguf"
+load_dotenv()
 
-llm = Llama(model_path=MODEL_PATH, max_tokens=100, n_ctx=2048)
-
-#warmup(llm)
+OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 
 st.set_page_config(page_title="FinSync AI", page_icon="💸")
+
 st.title("Boost your business ! 🚀")
 st.sidebar.title('FinSync AI 🤖💸')
 
@@ -22,13 +26,27 @@ for message in st.session_state.messages:
 prompt = st.chat_input("Your message")
 
 if prompt:
-    st.chat_message("user").markdown(prompt)
     
+    st.chat_message("user").markdown(prompt)
+
     st.session_state.messages.append({'role': 'user', 'content': prompt})
-    with st.spinner("Thinking...") :
 
-        response = generate_answer(llm, prompt)
+    chat_box = st.empty()
+    stream_handler = StreamHandler(chat_box, display_method='write')
+    chat = ChatOpenAI(api_key=OPEN_AI_KEY, streaming=True, callbacks=[stream_handler])
 
-        st.chat_message("assistant").markdown(response)
+    rag_context = rag_search(prompt)
+    processed_context = process_context(rag_context)
 
-        st.session_state.messages.append({'role': 'assistant', 'content': response})
+    messages = [
+        SystemMessage(
+            content=f"""You are a professional in finance.
+             As a financial expert, you're here to assist customers with information and advice on various financial topics.
+             {processed_context}"""
+        ),
+        HumanMessage(content=prompt),
+    ]
+    response = chat(messages)
+    
+    llm_response = response.content
+    st.session_state.messages.append({'role': 'assistant', 'content': llm_response})
