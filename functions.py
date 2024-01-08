@@ -1,12 +1,6 @@
 import streamlit as st
 import requests
 import json
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 
 def clear_chat_history():
     st.session_state.messages = [{"role": "assistant", "content": "How may I help you today?"}]
@@ -38,7 +32,7 @@ def process_context(context_data):
         context_piece = f"Title: {data['title']}\nDescription: {data['description']}\nContent: {data['content']}\n\n"
         processed_context += context_piece
 
-    return processed_context
+    return processed_context[:4000]
 
 def generate_answer(llm, query):
     rag_context = rag_search(query)
@@ -59,7 +53,7 @@ def generate_answer(llm, query):
 
     return response
 
-def call_chatgpt(prompt):
+def call_chatgpt(oai_key, prompt):
     rag_context = rag_search(prompt)
     processed_context = process_context(rag_context)
     retrieval = processed_context if processed_context else ""
@@ -67,7 +61,7 @@ def call_chatgpt(prompt):
     url = "https://api.openai.com/v1/chat/completions"
 
     headers = {
-        "Authorization": f"Bearer {OPEN_AI_KEY}",
+        "Authorization": f"Bearer {oai_key}",
         "Content-Type": "application/json"
     }
 
@@ -95,3 +89,24 @@ def extract_text_from_response(prompt):
             return "No Answer"
     except Exception as e:
         return "Error in extracting text: " + str(e)
+   
+def test_streaming(client, prompt):
+    
+    rag_context = rag_search(prompt)
+    processed_context = process_context(rag_context)
+    retrieval = processed_context if processed_context else ""
+
+    rep = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system",
+            "content": f"""You are a professional in finance.
+                As a financial expert, you're here to assist customers with information and advice on various financial topics.
+                {retrieval}"""
+            },
+            {"role": "user", "content": prompt}],
+        stream=True,
+    )
+    for chunk in rep:
+        if chunk.choices[0].delta.content is not None:
+            print(chunk.choices[0].delta.content, end="")
