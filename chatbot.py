@@ -1,10 +1,8 @@
 from llama_cpp import Llama
 from functions import *
 
-MODEL_PATH = "models/llama-2-7b.Q8_0.gguf"
-
-llm = Llama(model_path=MODEL_PATH, max_tokens=100, n_ctx=2048)
-
+#MODEL_PATH = "models/llama-2-7b.Q8_0.gguf"
+#llm = Llama(model_path=MODEL_PATH, max_tokens=100, n_ctx=2048)
 #warmup(llm)
 
 st.set_page_config(page_title="FinSync AI", page_icon="💸")
@@ -27,7 +25,7 @@ if prompt:
     st.session_state.messages.append({'role': 'user', 'content': prompt})
     with st.spinner("Thinking...") :
 
-        response = generate_answer(llm, prompt)
+        response = extract_text_from_response(prompt)
 
         st.chat_message("assistant").markdown(response)
 

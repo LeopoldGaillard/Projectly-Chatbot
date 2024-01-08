@@ -1,6 +1,12 @@
 import streamlit as st
 import requests
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+OPEN_AI_KEY = os.getenv("OPEN_AI_KEY")
 
 def clear_chat_history():
     st.session_state.messages = [{"role": "assistant", "content": "How may I help you today?"}]
@@ -53,37 +59,39 @@ def generate_answer(llm, query):
 
     return response
 
-'''
-def generate3(llm, query):
+def call_chatgpt(prompt):
+    rag_context = rag_search(prompt)
+    processed_context = process_context(rag_context)
+    retrieval = processed_context if processed_context else ""
 
-    #tokenizer = AutoTokenizer.from_pretrained(llm)
+    url = "https://api.openai.com/v1/chat/completions"
 
-    query_pipeline = transformers.pipeline(
-        "text-generation",
-        model=llm,
-        device_map="auto",)
-    
-    llm = HuggingFacePipeline(pipeline=query_pipeline)
+    headers = {
+        "Authorization": f"Bearer {OPEN_AI_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    rag_context = rag_search(query)
+    data = {
+        "model": "gpt-3.5-turbo",  # Utilisation du modèle gpt-3.5-turbo
+        "messages": [
+            {"role": "system",
+            "content": f"""You are a professional in finance.
+             As a financial expert, you're here to assist customers with information and advice on various financial topics.
+             {retrieval}"""
+            },
+            {"role": "user", "content": prompt}]
+    }
 
-    template = """You are a professional in finance.
-        As a financial expert, you're here to assist customers with information and advice on various financial topics.
-        If you don't know the answer, just say that you don't know. 
-        Use three sentences maximum and keep the answer concise.
+    response = requests.post(url, headers=headers, json=data)
+    return response.json()
 
-        Input: {question}
-        Context: {context}
-        Output:
-        """
-    
-    #prompt = ChatPromptTemplate.from_template(template)
-
-    qa_chain = RetrievalQA.from_chain_type(llm=llm,
-                                  chain_type="stuff",
-                                  retriever=rag_context,
-                                  return_source_documents=True)
-
-    return qa_chain.run(query)
-    #return rag_chain.invoke(query)
-'''
+def extract_text_from_response(prompt):
+    response = call_chatgpt(prompt)
+    try:
+        choices = response.get('choices', [])
+        if choices and 'message' in choices[0] and 'content' in choices[0]['message']:
+            return choices[0]['message']['content']
+        else:
+            return "No Answer"
+    except Exception as e:
+        return "Error in extracting text: " + str(e)
