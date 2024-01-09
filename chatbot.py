@@ -45,7 +45,7 @@ if prompt:
         ),
         HumanMessage(content=prompt),
     ]
-    st.chat_message("assistant").markdown(messages[0])
+
     response = chat(messages)
     
     llm_response = response.content
