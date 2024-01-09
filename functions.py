@@ -18,10 +18,26 @@ def rag_search(query):
 
     url = f"http://127.0.0.1:5000/projectly/docs/rag_search/{query}"
     response = requests.get(url)
+
     if response.status_code == 200:
-        res = json.loads(response.content)
-        res = {item["_id"]: item["_source"] for item in res}
-        return res
+        highlighted_texts = []
+
+        for hit in response.json():
+            highlight = hit.get('highlight', {})
+            text_parts = []
+
+            # Concaténer les highlights de 'title', 'description' et 'content'
+            for field in ['title', 'description', 'content']:
+                if field in highlight:
+                    # Joindre tous les fragments du highlight pour un champ donné
+                    text_parts.append(' '.join(highlight[field]))
+
+            # Joindre tous les champs highlightés pour ce document
+            highlighted_texts.append(' '.join(text_parts))
+
+        # Joindre les highlights de tous les documents
+        all_highlights = ' '.join(highlighted_texts)
+        return f"""Potentially relevant context : {all_highlights[:7800]}""" if all_highlights else ""
     else:
         return {"error": "Unable to fetch data"}
     
@@ -32,7 +48,7 @@ def process_context(context_data):
         context_piece = f"Title: {data['title']}\nDescription: {data['description']}\nContent: {data['content']}\n\n"
         processed_context += context_piece
 
-    return processed_context[:7800]
+    return f"""Contexte : {processed_context}""" if processed_context else ""
 
 def generate_answer(llm, query):
     rag_context = rag_search(query)
