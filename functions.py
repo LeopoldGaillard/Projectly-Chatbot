@@ -15,7 +15,7 @@ def warmup(llm):
         i += 1
 
 def rag_search(query):
-    url = f"http://127.0.0.1:5000/projectly/docs/rag_search/{query}"
+    url = f"http://127.0.0.1:49168/projectly/docs/rag_search/{query}"
     response = requests.get(url)
 
     if response.status_code != 200:
