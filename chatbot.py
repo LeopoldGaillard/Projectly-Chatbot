@@ -36,16 +36,16 @@ if prompt:
     chat = ChatOpenAI(api_key=OPEN_AI_KEY, streaming=True, callbacks=[stream_handler])
 
     rag_context = rag_search(prompt)
-    processed_context = process_context(rag_context)
 
     messages = [
         SystemMessage(
             content=f"""You are a professional in finance.
              As a financial expert, you're here to assist customers with information and advice on various financial topics.
-             {processed_context}"""
+             {rag_context}"""
         ),
         HumanMessage(content=prompt),
     ]
+
     response = chat(messages)
     
     llm_response = response.content
